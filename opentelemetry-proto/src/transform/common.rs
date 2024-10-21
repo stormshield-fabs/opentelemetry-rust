@@ -44,13 +44,13 @@ pub mod tonic {
 
     impl
         From<(
-            opentelemetry_sdk::InstrumentationLibrary,
+            opentelemetry_sdk::InstrumentationScope,
             Option<Cow<'static, str>>,
         )> for InstrumentationScope
     {
         fn from(
             data: (
-                opentelemetry_sdk::InstrumentationLibrary,
+                opentelemetry_sdk::InstrumentationScope,
                 Option<Cow<'static, str>>,
             ),
         ) -> Self {
@@ -66,7 +66,7 @@ pub mod tonic {
                 InstrumentationScope {
                     name: library.name.into_owned(),
                     version: library.version.map(Cow::into_owned).unwrap_or_default(),
-                    attributes: Attributes::from(library.attributes).0,
+                    attributes: Attributes::from(library.attributes.into_owned()).0,
                     ..Default::default()
                 }
             }
@@ -75,13 +75,13 @@ pub mod tonic {
 
     impl
         From<(
-            &opentelemetry_sdk::InstrumentationLibrary,
+            &opentelemetry_sdk::InstrumentationScope,
             Option<Cow<'static, str>>,
         )> for InstrumentationScope
     {
         fn from(
             data: (
-                &opentelemetry_sdk::InstrumentationLibrary,
+                &opentelemetry_sdk::InstrumentationScope,
                 Option<Cow<'static, str>>,
             ),
         ) -> Self {
@@ -101,7 +101,7 @@ pub mod tonic {
                         .as_ref()
                         .map(ToString::to_string)
                         .unwrap_or_default(),
-                    attributes: Attributes::from(library.attributes.clone()).0,
+                    attributes: Attributes::from(library.attributes.clone().into_owned()).0,
                     ..Default::default()
                 }
             }

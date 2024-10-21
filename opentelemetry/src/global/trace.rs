@@ -1,5 +1,5 @@
 use crate::trace::{noop::NoopTracerProvider, SpanContext, Status};
-use crate::InstrumentationLibrary;
+use crate::InstrumentationScope;
 use crate::{trace, trace::TracerProvider, Context, KeyValue};
 use once_cell::sync::Lazy;
 use std::borrow::Cow;
@@ -305,10 +305,7 @@ where
 pub trait ObjectSafeTracerProvider {
     /// Creates a versioned named tracer instance that is a trait object through the underlying
     /// `TracerProvider`.
-    fn boxed_tracer(
-        &self,
-        library: Arc<InstrumentationLibrary>,
-    ) -> Box<dyn ObjectSafeTracer + Send + Sync>;
+    fn boxed_tracer(&self, scope: InstrumentationScope) -> Box<dyn ObjectSafeTracer + Send + Sync>;
 }
 
 impl<S, T, P> ObjectSafeTracerProvider for P
@@ -318,11 +315,8 @@ where
     P: trace::TracerProvider<Tracer = T>,
 {
     /// Return a versioned boxed tracer
-    fn boxed_tracer(
-        &self,
-        library: Arc<InstrumentationLibrary>,
-    ) -> Box<dyn ObjectSafeTracer + Send + Sync> {
-        Box::new(self.library_tracer(library))
+    fn boxed_tracer(&self, scope: InstrumentationScope) -> Box<dyn ObjectSafeTracer + Send + Sync> {
+        Box::new(self.library_tracer(scope))
     }
 }
 
@@ -360,8 +354,8 @@ impl trace::TracerProvider for GlobalTracerProvider {
     type Tracer = BoxedTracer;
 
     /// Create a tracer using the global provider.
-    fn library_tracer(&self, library: Arc<InstrumentationLibrary>) -> Self::Tracer {
-        BoxedTracer(self.provider.boxed_tracer(library))
+    fn library_tracer(&self, scope: InstrumentationScope) -> Self::Tracer {
+        BoxedTracer(self.provider.boxed_tracer(scope))
     }
 }
 
@@ -405,23 +399,21 @@ pub fn tracer(name: impl Into<Cow<'static, str>>) -> BoxedTracer {
 /// ```
 /// use std::sync::Arc;
 /// use opentelemetry::global::library_tracer;
-/// use opentelemetry::InstrumentationLibrary;
+/// use opentelemetry::InstrumentationScope;
 /// use opentelemetry::KeyValue;
 ///
-/// let library = Arc::new(
-///     InstrumentationLibrary::builder("io.opentelemetry")
-///         .with_version("0.17")
-///         .with_schema_url("https://opentelemetry.io/schema/1.2.0")
-///         .with_attributes(vec![(KeyValue::new("key", "value"))])
-///         .build(),
-/// );
+/// let scope = InstrumentationScope::builder("io.opentelemetry")
+///     .with_version("0.17")
+///     .with_schema_url("https://opentelemetry.io/schema/1.2.0")
+///     .with_attributes(vec![(KeyValue::new("key", "value"))])
+///     .build();
 ///
-/// let meter = library_tracer(library);
+/// let meter = library_tracer(scope);
 /// ```
 ///
 /// [`Tracer`]: crate::trace::Tracer
-pub fn library_tracer(library: Arc<InstrumentationLibrary>) -> BoxedTracer {
-    tracer_provider().library_tracer(library)
+pub fn library_tracer(scope: InstrumentationScope) -> BoxedTracer {
+    tracer_provider().library_tracer(scope)
 }
 
 /// Sets the given [`TracerProvider`] instance as the current global provider.
